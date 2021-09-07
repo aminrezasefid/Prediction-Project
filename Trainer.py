@@ -72,10 +72,8 @@ def train(data: Data, model: torch.nn.Module, matches,
             running_accuracy.append(correct)
             acc += correct
 
-            update_edge_time(data, home, away, result)
-            update_edge_index(data)
-            calculate_edge_weight(data)
-
+            update_graph(data, home, away, result)
+            
         if print_info:
             print("Epoch:{}, train_loss:{:.5f}, train_acc:{:.5f}"
                   .format(epoch, loss_value, acc / (matches.shape[0])))
