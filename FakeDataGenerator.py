@@ -10,6 +10,7 @@ template_file_name = "PL_scraped_ord.csv"
 output_file_name = "FakeData.csv"
 player_strength_vec_size = 15
 fake_season_count = 20
+draw_threshhold = 0.1
 
 #Randomizer Objects
 PlayerStrength_rnd = np.random.default_rng(2021)
@@ -69,13 +70,14 @@ def DistributePlayers(Teams, Players):
 
 
 class season:
-    def __init__(self, Teams, Players):
+    def __init__(self, Teams, Players, season_number):
         self.week_count = (len(Teams) - 1)*2
+        self.season_number = season_number
+        self.Players = Players
         self.Teams = DistributePlayers(Teams, list(Players)) #Teams is a dict from now on {'teamname': player list}
         self.Weeks = [] #list of season weeks. Each member is a list of games in that week. each member = tuple(home, away)
         for i in range(self.week_count):
             self.Weeks.append([])
-        self.CreateGameWeeks()
         
     
         
@@ -88,6 +90,7 @@ class season:
         row2 = team_list[(len(self.Teams)//2):]
         for w in range(self.week_count//2):
             for t1, t2 in zip(row1, row2):
+                #if w%2: t1,t2 = t2,t1
                 self.Weeks[w].append((t1, t2))
                 self.Weeks[random.randrange(self.week_count/2, self.week_count)].append((t2, t1))
             row2.append(row1.pop())
@@ -104,7 +107,36 @@ class season:
         #                 if (t2, t) not in self.Weeks[week_idx]:
         #                     self.Weeks[week_idx].append((t, t2))
         #                     break
-                            
+
+
+    def PlayGames(self):
+        for week in range(self.week_count):
+            for game in self.Weeks[week]:
+                home = game[0]
+                home_lineup = random.sample(self.Teams[home], 11)
+                away = game[1]
+                away_lineup = random.sample(self.Teams[away], 11)
+
+                home_strength = np.zeros(player_strength_vec_size)
+                away_strength = np.zeros(player_strength_vec_size)
+                for p in home_lineup:
+                    home_strength += self.Players[p]
+                for p in away_lineup:
+                    away_strength += self.Players[p]
+
+                match_result = home_strength - away_strength
+                match_result = float(np.sum(match_result))
+                final_result = ''
+                if match_result > draw_threshhold:
+                    final_result = 'W'
+                elif match_result <= draw_threshhold and match_result >= (-1)*draw_threshhold:
+                    final_result = 'D'
+                else:
+                    final_result = 'L'
+                out_str = f"{self.season_number},{week+1},{home},{away},{final_result},{'-'.join(home_lineup)},{'-'.join(away_lineup)}\n"
+                with open(output_file_name, 'a') as outfile:
+                    outfile.write(out_str)
+                
 
 
 
@@ -113,7 +145,12 @@ if __name__ == "__main__":
     Teams, Players = ReadTemplate()
     Players = RandomizePlayerStrength(Players) #Players is a dict from now on {'playername': strength vector}
     
+    with open(output_file_name, 'w') as outfile:
+        outfile.write("Season_number, Week, Home_Team, Away_Team, Result, Home_Lineup, Away_Lineup\n")
 
-    s1 = season(Teams, Players)
+    s1 = season(Teams, Players, 1990)
+    s1.CreateGameWeeks()
+    s1.PlayGames()
+    
     
 
