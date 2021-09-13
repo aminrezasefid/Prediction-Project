@@ -9,8 +9,8 @@ from collections import deque
 template_file_name = "PL_scraped_ord.csv"
 output_file_name = "FakeData.csv"
 player_strength_vec_size = 15
-fake_season_count = 20
-draw_threshhold = 0.1
+fake_season_count = 1
+draw_threshhold = 10
 
 #Randomizer Objects
 PlayerStrength_rnd = np.random.default_rng(2021)
@@ -89,10 +89,17 @@ class season:
         row1 = team_list[:(len(self.Teams)//2)]
         row2 = team_list[(len(self.Teams)//2):]
         for w in range(self.week_count//2):
+            return_week_idx = random.randrange(self.week_count//2, self.week_count)
+            while len(self.Weeks[return_week_idx]) >= len(self.Teams)//2:
+                    return_week_idx = return_week_idx + 1
+                    if return_week_idx >= self.week_count:
+                        return_week_idx = self.week_count//2
             for t1, t2 in zip(row1, row2):
-                #if w%2: t1,t2 = t2,t1
+                if w%2: t1,t2 = t2,t1
                 self.Weeks[w].append((t1, t2))
-                self.Weeks[random.randrange(self.week_count/2, self.week_count)].append((t2, t1))
+                self.Weeks[return_week_idx].append((t2, t1))
+
+                            
             row2.append(row1.pop())
             row1.insert(1, row2.pop(0))
 
@@ -148,9 +155,13 @@ if __name__ == "__main__":
     with open(output_file_name, 'w') as outfile:
         outfile.write("Season_number, Week, Home_Team, Away_Team, Result, Home_Lineup, Away_Lineup\n")
 
-    s1 = season(Teams, Players, 1990)
-    s1.CreateGameWeeks()
-    s1.PlayGames()
+    for s in range(fake_season_count):
+        s1 = season(Teams, Players, 1990+s)
+        s1.CreateGameWeeks()
+        s1.PlayGames()
+
+    # a = ('Blackburn Rovers', 'Tottenham Hotspur')
+    # print('Blackburn Rovers' in a)
     
     
 
