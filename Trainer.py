@@ -6,8 +6,9 @@ import torch.optim as optim
 from typing import Tuple
 import pandas as pd
 from torch_geometric.data import Data
+from utils import *
 
-val_batches=72
+val_batches=3
 def trainer(data: Data, model, epochs=100, lr=0.001, lr_discount=0.2, batch_size=9):
     print("Starting training ...")
     matches = data.matches.append(data.data_val, ignore_index=True)
@@ -39,9 +40,10 @@ def get_predictions(data: Data, model: torch.nn.Module, matches) -> Tuple[torch.
 
 def get_probabilities(data, model, matches):
     model.eval()
-    home, away, label = torch.from_numpy(matches['home_team'].values.astype('int64')), \
-                        torch.from_numpy(matches['away_team'].values.astype('int64')), \
-                        torch.from_numpy(matches['lwd'].values.astype('int64').reshape(-1, ))
+    home,away,label =get_home_away_indices(matches,data.nodes)
+    # home, away, label = torch.from_numpy(matches['home_team'].values.astype('int64')), \
+    #                     torch.from_numpy(matches['away_team'].values.astype('int64')), \
+    #                     torch.from_numpy(matches['lwd'].values.astype('int64').reshape(-1, ))
     with torch.no_grad():
         outputs = model(data, home, away)
     #model.train() #inja ro bepors hatman
@@ -58,9 +60,10 @@ def train(data: Data, model: torch.nn.Module, matches,
         loss_value = 0.0
         optimizer.zero_grad()
         for j in range(0, matches.shape[0], batch_size):
-            home, away, result = torch.from_numpy(matches.iloc[j:j + batch_size]['home_team'].values.astype('int64')), \
-                                 torch.from_numpy(matches.iloc[j:j + batch_size]['away_team'].values.astype('int64')), \
-                                 torch.from_numpy(matches.iloc[j:j + batch_size]['lwd'].values.astype('int64').reshape(-1, ))
+            home,away,result =get_home_away_indices(matches.iloc[j:j + batch_size],data.nodes)
+            # home, away, result = torch.from_numpy(matches.iloc[j:j + batch_size]['home_team'].values.astype('int64')), \
+            #                      torch.from_numpy(matches.iloc[j:j + batch_size]['away_team'].values.astype('int64')), \
+            #                      torch.from_numpy(matches.iloc[j:j + batch_size]['lwd'].values.astype('int64').reshape(-1, ))
             outputs = model(data, home, away)
             loss = criterion(outputs, result)
             loss.backward()
@@ -72,7 +75,7 @@ def train(data: Data, model: torch.nn.Module, matches,
             running_accuracy.append(correct)
             acc += correct
 
-            update_graph(data, home, away, result)
+            edge_generator(data, matches.iloc[j:j + batch_size])
             
         if print_info:
             print("Epoch:{}, train_loss:{:.5f}, train_acc:{:.5f}"
