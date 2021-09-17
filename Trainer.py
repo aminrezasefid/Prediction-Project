@@ -7,7 +7,7 @@ from typing import Tuple
 import pandas as pd
 from torch_geometric.data import Data
 from utils import *
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 val_batches=3
 def trainer(data: Data, model, epochs=100, lr=0.001, lr_discount=0.2, batch_size=9):
     print("Starting training ...")
@@ -15,6 +15,7 @@ def trainer(data: Data, model, epochs=100, lr=0.001, lr_discount=0.2, batch_size
     for i in range(0, matches.shape[0], batch_size):
         val_evaluate(data, model, matches.iloc[i:i + val_batches * batch_size])
         train_start_point = max(0, i - 40 * batch_size)
+
         train(data,model,matches.iloc[train_start_point:i + batch_size],epochs,lr,batch_size)
         print("T:{}, train_loss:{:.5f}, train_acc:{:.5f}, val_loss={:.5f}, val_acc={:.5f}"
               .format(int(i / batch_size),
@@ -25,7 +26,8 @@ def trainer(data: Data, model, epochs=100, lr=0.001, lr_discount=0.2, batch_size
                       
 
 def val_evaluate(data: Data, model: torch.nn.Module, matches):
-    criterion = nn.NLLLoss()  # weight=torch.tensor([1.6,1.95,1])
+    
+    criterion = nn.NLLLoss().to(device)  # weight=torch.tensor([1.6,1.95,1])
     predicted, label, outputs = get_predictions(data, model, matches)
     loss = criterion(outputs, label).item()
 
@@ -47,7 +49,7 @@ def get_probabilities(data, model, matches):
     with torch.no_grad():
         outputs = model(data, home, away)
     #model.train() #inja ro bepors hatman
-    return outputs, label
+    return outputs, label.to(device)
 
 def train(data: Data, model: torch.nn.Module, matches,
                epochs:int = 100, lr: int = 0.0001, batch_size:int = 9, print_info: bool = False):
@@ -55,12 +57,14 @@ def train(data: Data, model: torch.nn.Module, matches,
     optimizer = optim.Adam(model.parameters(), lr=lr)
     running_loss = []
     running_accuracy = []
+    
     for epoch in range(epochs):
         acc = 0
         loss_value = 0.0
         optimizer.zero_grad()
         for j in range(0, matches.shape[0], batch_size):
             home,away,result =get_home_away_indices(matches.iloc[j:j + batch_size],data.nodes)
+            result=result.to(device)
             # home, away, result = torch.from_numpy(matches.iloc[j:j + batch_size]['home_team'].values.astype('int64')), \
             #                      torch.from_numpy(matches.iloc[j:j + batch_size]['away_team'].values.astype('int64')), \
             #                      torch.from_numpy(matches.iloc[j:j + batch_size]['lwd'].values.astype('int64').reshape(-1, ))

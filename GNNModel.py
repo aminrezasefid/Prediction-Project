@@ -9,8 +9,9 @@ activations = {
 
 class GNNModel(torch.nn.Module):
     def __init__(self, n_nodes, embed_dim=10, n_conv=3, conv_dims=(32, 32, 32, 16), n_dense=5, dense_dims=(8, 8, 8, 8,8),
-                 act_f='leaky',n_relation=2,aggr='add',target_dim = 3):
+                 act_f='leaky',n_relation=4,aggr='add',target_dim = 3):
         super(GNNModel, self).__init__()
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.target_dim=target_dim
         self.embed_dim = embed_dim 
         self.n_conv = n_conv
@@ -19,23 +20,24 @@ class GNNModel(torch.nn.Module):
         self.activation = activations[act_f]
         self.n_nodes = n_nodes
         self.n_relation=n_relation
-        self.embedding = torch.nn.Embedding(num_embeddings=n_nodes, embedding_dim=embed_dim)
-        conv_layers = [gnn.RGCNConv(self.embed_dim, self.conv_dims[0],self.n_relation,aggr=aggr)]
+        self.embedding = torch.nn.Embedding(num_embeddings=n_nodes, embedding_dim=embed_dim).to(device)
+        conv_layers = [gnn.RGCNConv(self.embed_dim, self.conv_dims[0],self.n_relation,aggr=aggr).to(device)]
         for i in range(n_conv - 1):
-            conv_layers.append(gnn.RGCNConv(conv_dims[i], conv_dims[i + 1],self.n_relation,aggr=aggr))
+            conv_layers.append(gnn.RGCNConv(conv_dims[i], conv_dims[i + 1],self.n_relation,aggr=aggr).to(device))
         self.conv_layers =nn.ModuleList(conv_layers)
         lin_layers = []
-        lin_layers.append(torch.nn.Linear(conv_dims[n_conv - 1]*2, dense_dims[0]))
+        lin_layers.append(torch.nn.Linear(conv_dims[n_conv - 1]*2, dense_dims[0]).to(device))
         for i in range(n_dense - 2):
-            lin_layers.append(torch.nn.Linear(dense_dims[i], dense_dims[i + 1]))
-        lin_layers.append(torch.nn.Linear(dense_dims[n_dense - 2], self.target_dim))
+            lin_layers.append(torch.nn.Linear(dense_dims[i], dense_dims[i + 1]).to(device))
+        lin_layers.append(torch.nn.Linear(dense_dims[n_dense - 2], self.target_dim).to(device))
         self.lin_layers = nn.ModuleList(lin_layers)
-        self.out = nn.LogSoftmax(dim=1)
-        self.drop = nn.Dropout(p=0.1)
+        self.out = nn.LogSoftmax(dim=1).to(device)
+        self.drop = nn.Dropout(p=0.1).to(device)
     def forward(self,data,home, away):
-        edge_index,edge_type=data.edge_index,data.edge_type
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        edge_index,edge_type=data.edge_index.to(device),data.edge_type.to(device)
 
-        x = torch.tensor(list(range(self.n_nodes)))
+        x = torch.tensor(list(range(self.n_nodes))).to(device)
         x = self.embedding(x).reshape(-1, self.embed_dim)
 
         x = self.conv_layers[0](x, edge_index,edge_type)

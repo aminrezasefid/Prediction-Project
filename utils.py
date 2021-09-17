@@ -34,7 +34,7 @@ def get_home_away_indices(df,nodes):
         home_teams.append(nodes[f'{h_team}*{index}'])
         away_teams.append(nodes[f'{a_team}*{index}'])
 
-    return home_teams,away_teams,result
+    return torch.tensor(home_teams),torch.tensor(away_teams),result
 def nodes_gen(df):
     from collections import OrderedDict as od
     nodes = dict()
