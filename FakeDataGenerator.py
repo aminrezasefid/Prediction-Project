@@ -154,7 +154,7 @@ if __name__ == "__main__":
     Players = RandomizePlayerStrength(Players) #Players is a dict from now on {'playername': strength vector}
     
     with open(output_file_name, 'w') as outfile:
-        outfile.write("Season_number, Week, Home_Team, Away_Team, Result, Home_Lineup, Away_Lineup\n")
+        outfile.write("Season_number,Week,home_team,away_team,result,home_lineup,away_lineup\n")
 
     for s in range(fake_season_count):
         s1 = season(Teams, Players, 1990+s)
