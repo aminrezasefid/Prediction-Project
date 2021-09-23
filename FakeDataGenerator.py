@@ -9,7 +9,7 @@ from collections import deque
 template_file_name = "PL_scraped_ord.csv"
 output_file_name = "FakeData.csv"
 player_strength_vec_size = 15
-fake_season_count = 1
+fake_season_count = 20
 draw_threshhold = 10
 
 #Randomizer Objects
@@ -88,6 +88,7 @@ class season:
         random.shuffle(team_list)
         row1 = team_list[:(len(self.Teams)//2)]
         row2 = team_list[(len(self.Teams)//2):]
+        row2.reverse()
         for w in range(self.week_count//2):
             return_week_idx = random.randrange(self.week_count//2, self.week_count)
             while len(self.Weeks[return_week_idx]) >= len(self.Teams)//2:
@@ -159,6 +160,7 @@ if __name__ == "__main__":
         s1 = season(Teams, Players, 1990+s)
         s1.CreateGameWeeks()
         s1.PlayGames()
+        print(f'season: {s} created.')
 
     # a = ('Blackburn Rovers', 'Tottenham Hotspur')
     # print('Blackburn Rovers' in a)
