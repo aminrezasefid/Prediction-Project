@@ -1,3 +1,4 @@
+from typing import final
 import pandas as pd
 import numpy as np
 import random
@@ -6,10 +7,12 @@ from collections import deque
 
 
 #constants
-template_file_name = "PL_scraped_ord.csv"
-output_file_name = "FakeData.csv"
+template_file_name_EPL = "PL_scraped_ord.csv"
+template_file_name_Thesis = "GER1_all.csv"
+output_file_name_EPL = "FakeData_EPL.csv"
+output_file_name_Thesis = "FakeData_Thesis.csv"
 player_strength_vec_size = 15
-fake_season_count = 20
+fake_season_count = 1
 draw_threshhold = 10
 
 #Randomizer Objects
@@ -19,11 +22,10 @@ random.seed(2020)
 
 
 
-
 #Reads the real data and collects player and team names
-def ReadTemplate():
+def CollectTeamsandPlayers():
     real_data = pd.read_csv(
-        template_file_name, 
+        template_file_name_EPL, 
         encoding='latin-1', 
         usecols= ['home_team', 'home_lineup']
     )
@@ -35,8 +37,6 @@ def ReadTemplate():
         tmp = l.replace(' ', '').strip('-').split('-')
         for p in tmp:
             Players.add(p)
-            
-
     
     return sorted(Teams), sorted(Players)
 
@@ -79,7 +79,6 @@ class season:
         for i in range(self.week_count):
             self.Weeks.append([])
         
-    
         
     def CreateGameWeeks(self):
         team_list = list(self.Teams)
@@ -134,27 +133,51 @@ class season:
 
                 match_result = home_strength - away_strength
                 match_result = float(np.sum(match_result))
-                final_result = ''
+                final_result_Thesis = ''
+                final_result_EPL = ''
                 if match_result > draw_threshhold:
-                    final_result = 'W'
+                    final_result_EPL = 'home'
+                    final_result_Thesis = 'W'
                 elif match_result <= draw_threshhold and match_result >= (-1)*draw_threshhold:
-                    final_result = 'D'
+                    final_result_EPL = 'tie'
+                    final_result_Thesis = 'D'
                 else:
-                    final_result = 'L'
-                out_str = f"{self.season_number},{week+1},{home},{away},{final_result},{'-'.join(home_lineup)},{'-'.join(away_lineup)}\n"
-                with open(output_file_name, 'a') as outfile:
-                    outfile.write(out_str)
+                    final_result_EPL = 'away'
+                    final_result_Thesis = 'L'
+                out_str_epl = f"0,{self.season_number},{week+1}," + \
+                            '0,'*6 + \
+                            f"{home},{away}," + \
+                            '0,'*16 + \
+                            f"{final_result_EPL}," + \
+                            '0,'*32 + \
+                            f"{'-'.join(home_lineup)},{'-'.join(away_lineup)}\n"
+                with open(output_file_name_EPL, 'a') as outfile:
+                    outfile.write(out_str_epl)
+
+                out_str_Thesis = f"{self.season_number},EPL,0,{home},{away},{'0,'*3},{final_result_Thesis},England\n"
+                with open(output_file_name_Thesis, 'a') as outfile:
+                        outfile.write(out_str_Thesis)
                 
 
 
 
 
 if __name__ == "__main__":
-    Teams, Players = ReadTemplate()
+
+    # epl_template = pd.read_csv(template_file_name_EPL, encoding='latin-1').columns
+    # print(epl_template)
+    # print(epl_template.get_loc('away_fouls') - epl_template.get_loc('home_score') + 1)
+
+
+
+    Teams, Players = CollectTeamsandPlayers()
     Players = RandomizePlayerStrength(Players) #Players is a dict from now on {'playername': strength vector}
     
-    with open(output_file_name, 'w') as outfile:
-        outfile.write("Season_number,Week,home_team,away_team,result,home_lineup,away_lineup\n")
+    with open(output_file_name_EPL, 'w') as outfile:
+        epl_template = list(pd.read_csv(template_file_name_EPL, encoding='latin-1').columns)
+        outfile.write(','.join(epl_template) + '\n')
+    with open(output_file_name_Thesis, 'w') as outfile:
+        outfile.write('')
 
     for s in range(fake_season_count):
         s1 = season(Teams, Players, 1990+s)
