@@ -12,8 +12,8 @@ template_file_name_Thesis = "GER1_all.csv"
 output_file_name_EPL = "FakeData_EPL.csv"
 output_file_name_Thesis = "FakeData_Thesis.csv"
 player_strength_vec_size = 15
-fake_season_count = 20
-draw_threshhold = 10
+fake_season_count = 50
+draw_threshhold = 15
 
 #Randomizer Objects
 PlayerStrength_rnd = np.random.default_rng(2021)
