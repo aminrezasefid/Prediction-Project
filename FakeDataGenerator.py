@@ -34,7 +34,7 @@ def CollectTeamsandPlayers():
     Players = set()
     
     for l in Team_lineups:
-        tmp = l.strip('-').split('-')
+        tmp = l.strip(' -').split(' - ')
         for p in tmp:
             p = p.strip()
             Players.add(p)
@@ -151,7 +151,7 @@ class season:
                             '0,'*16 + \
                             f"{final_result_EPL}," + \
                             '0,'*32 + \
-                            f"{'-'.join(home_lineup)},{'-'.join(away_lineup)}\n"
+                            f"{' - '.join(home_lineup)},{' - '.join(away_lineup)}\n"
                 with open(output_file_name_EPL, 'a') as outfile:
                     outfile.write(out_str_epl)
 
