@@ -12,7 +12,7 @@ template_file_name_Thesis = "GER1_all.csv"
 output_file_name_EPL = "FakeData_EPL.csv"
 output_file_name_Thesis = "FakeData_Thesis.csv"
 player_strength_vec_size = 15
-fake_season_count = 1
+fake_season_count = 20
 draw_threshhold = 10
 
 #Randomizer Objects
@@ -34,8 +34,9 @@ def CollectTeamsandPlayers():
     Players = set()
     
     for l in Team_lineups:
-        tmp = l.replace(' ', '').strip('-').split('-')
+        tmp = l.strip('-').split('-')
         for p in tmp:
+            p = p.strip()
             Players.add(p)
     
     return sorted(Teams), sorted(Players)
@@ -154,7 +155,7 @@ class season:
                 with open(output_file_name_EPL, 'a') as outfile:
                     outfile.write(out_str_epl)
 
-                out_str_Thesis = f"{self.season_number},EPL,0,{home},{away},{'0,'*3},{final_result_Thesis},England\n"
+                out_str_Thesis = f"{self.season_number},EPL,0,{home},{away},{'0,'*3}{final_result_Thesis},England\n"
                 with open(output_file_name_Thesis, 'a') as outfile:
                         outfile.write(out_str_Thesis)
                 
