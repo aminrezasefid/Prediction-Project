@@ -22,6 +22,28 @@ random.seed(2020)
 
 
 
+
+def remove_redundancy(players):
+  new_players = list()
+
+  for player in players:
+    if 'Own' in player:
+      player = player.replace('Own', '')
+    if 'Pen. Scored' in player:
+      player = player.replace('Pen. Scored', '')
+    if 'Pen. Score' in player:
+      player = player.replace('Pen. Score', '')
+    if 'Own' in player or 'Scored' in player or '.' in player or 'Score' in player:
+      print(player)
+      #SHOULD NOT PRINT IF CODE IS CORRECT
+    else:
+      new_players.append(player.strip())
+  return new_players
+
+
+
+
+
 #Reads the real data and collects player and team names
 def CollectTeamsandPlayers():
     real_data = pd.read_csv(
@@ -29,17 +51,18 @@ def CollectTeamsandPlayers():
         encoding='latin-1', 
         usecols= ['home_team', 'home_lineup']
     )
+    corrupted = real_data.loc[pd.isna(real_data['home_lineup'])]
+    real_data = real_data.drop(corrupted.index, axis=0)
+
     Teams = set(real_data['home_team'].loc[real_data.index[:380]])
     Team_lineups = list(real_data['home_lineup'].loc[real_data.index[:380]])
-    Players = set()
+    Players = list()
     
     for l in Team_lineups:
         tmp = l.strip(' -').split(' - ')
-        for p in tmp:
-            p = p.strip()
-            Players.add(p)
+        Players.extend(remove_redundancy(tmp))
     
-    return sorted(Teams), sorted(Players)
+    return sorted(Teams), sorted(set(Players))
 
 
 #Gives each player a random strength vector
@@ -151,7 +174,7 @@ class season:
                             '0,'*16 + \
                             f"{final_result_EPL}," + \
                             '0,'*32 + \
-                            f"{' - '.join(home_lineup)},{' - '.join(away_lineup)}\n"
+                            f"{' - '.join(home_lineup)} - ,{' - '.join(away_lineup)} - \n"
                 with open(output_file_name_EPL, 'a') as outfile:
                     outfile.write(out_str_epl)
 
