@@ -8,8 +8,8 @@ import pandas as pd
 from torch_geometric.data import Data
 from utils import *
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-val_batches=3
-def trainer(data: Data, model, epochs=100, lr=0.001, lr_discount=0.2, batch_size=9):
+val_batches=72
+def trainer(data: Data, model, epochs=10, lr=0.001, lr_discount=0.2, batch_size=9):
     print("Starting training ...")
     matches = data.matches.append(data.data_val, ignore_index=True)
     for i in range(0, matches.shape[0], batch_size):
