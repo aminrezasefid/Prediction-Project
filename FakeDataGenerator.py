@@ -1,9 +1,7 @@
-from typing import final
 import pandas as pd
 import numpy as np
 import random
-from collections import deque
-
+from scipy.special import expit
 
 
 #constants
@@ -11,16 +9,26 @@ template_file_name_EPL = "PL_scraped_ord.csv"
 template_file_name_Thesis = "GER1_all.csv"
 output_file_name_EPL = "FakeData_EPL.csv"
 output_file_name_Thesis = "FakeData_Thesis.csv"
+output_column_names = ['match_id', 'country', 'league', 'season', 'week', 'date', 'home_team', 'away_team', 'home_goal', 'away_goal', 'result', 'home_lineup', 'away_lineup']
+
 player_strength_vec_size = 15
-fake_season_count = 50
-draw_threshhold = 15
+maximum_possible_goals = 5
+noise_amount = 0
+fake_season_count = 5
+linear_transform_vector = 0
 
 #Randomizer Objects
 PlayerStrength_rnd = np.random.default_rng(2021)
 random.seed(2020)
 
 
+out_data_ours = []
+out_data_thesis = []
 
+
+
+def maptorange(src_min, src_max, dest_min, dest_max, x):
+    return dest_min + (((dest_max - dest_min)/(src_max - src_min)) * (x - src_min))
 
 
 def remove_redundancy(players):
@@ -52,7 +60,7 @@ def CollectTeamsandPlayers():
         usecols= ['home_team', 'home_lineup']
     )
     corrupted = real_data.loc[pd.isna(real_data['home_lineup'])]
-    real_data = real_data.drop(corrupted.index, axis=0)
+    real_data = real_data.drop(corrupted.index, axis=0).reset_index(drop= True)
 
     Teams = set(real_data['home_team'].loc[real_data.index[:380]])
     Team_lineups = list(real_data['home_lineup'].loc[real_data.index[:380]])
@@ -99,7 +107,7 @@ class season:
         self.season_number = season_number
         self.Players = Players
         self.Teams = DistributePlayers(Teams, list(Players)) #Teams is a dict from now on {'teamname': player list}
-        self.Weeks = [] #list of season weeks. Each member is a list of games in that week. each member = tuple(home, away)
+        self.Weeks = [] #list of season weeks. Each member is a list of games in that week. each sub member = tuple(home, away)
         for i in range(self.week_count):
             self.Weeks.append([])
         
@@ -155,39 +163,37 @@ class season:
                 for p in away_lineup:
                     away_strength += self.Players[p]
 
-                match_result = home_strength - away_strength
-                match_result = float(np.sum(match_result))
-                final_result_Thesis = ''
-                final_result_EPL = ''
-                if match_result > draw_threshhold:
-                    final_result_EPL = 'home'
-                    final_result_Thesis = 'W'
-                elif match_result <= draw_threshhold and match_result >= (-1)*draw_threshhold:
-                    final_result_EPL = 'tie'
-                    final_result_Thesis = 'D'
-                else:
-                    final_result_EPL = 'away'
-                    final_result_Thesis = 'L'
-                out_str_epl = f"0,{self.season_number},{week+1}," + \
-                            '0,'*6 + \
-                            f"{home},{away}," + \
-                            '0,'*16 + \
-                            f"{final_result_EPL}," + \
-                            '0,'*32 + \
-                            f"{' - '.join(home_lineup)} - ,{' - '.join(away_lineup)} - \n"
-                with open(output_file_name_EPL, 'a') as outfile:
-                    outfile.write(out_str_epl)
+                # home_strength = home_strength / 11
+                # away_strength = away_strength / 11
 
-                out_str_Thesis = f"{self.season_number},EPL,0,{home},{away},{'0,'*3}{final_result_Thesis},England\n"
-                with open(output_file_name_Thesis, 'a') as outfile:
-                        outfile.write(out_str_Thesis)
+                home_strength = np.multiply(home_strength, linear_transform_vector)
+                away_strength = np.multiply(away_strength, linear_transform_vector)
+
+
+                home_strength = float(np.sum(home_strength)) 
+                away_strength = float(np.sum(away_strength)) 
+
+
+
+
+                home_strength += PlayerStrength_rnd.uniform(-(home_strength*noise_amount), home_strength*noise_amount)
+                away_strength += PlayerStrength_rnd.uniform(-(away_strength*noise_amount), away_strength*noise_amount)
+
                 
 
+                out_data_ours.append([
+                    '0', 'fake', 'fake', self.season_number, week+1, '0', home, away,
+                    home_strength, away_strength, '0',
+                    ' - '.join(home_lineup), ' - '.join(away_lineup)
+                ])
+
+            
+                out_data_thesis.append([
+                    self.season_number, 'fake', '0', home, away, home_strength, away_strength, 0, '0', 'fake' 
+                ])
 
 
-
-if __name__ == "__main__":
-
+def main():
     # epl_template = pd.read_csv(template_file_name_EPL, encoding='latin-1').columns
     # print(epl_template)
     # print(epl_template.get_loc('away_fouls') - epl_template.get_loc('home_score') + 1)
@@ -196,10 +202,12 @@ if __name__ == "__main__":
 
     Teams, Players = CollectTeamsandPlayers()
     Players = RandomizePlayerStrength(Players) #Players is a dict from now on {'playername': strength vector}
-    
+    global linear_transform_vector
+    linear_transform_vector = PlayerStrength_rnd.random(player_strength_vec_size)
+
+
     with open(output_file_name_EPL, 'w') as outfile:
-        epl_template = list(pd.read_csv(template_file_name_EPL, encoding='latin-1').columns)
-        outfile.write(','.join(epl_template) + '\n')
+        outfile.write('')
     with open(output_file_name_Thesis, 'w') as outfile:
         outfile.write('')
 
@@ -209,8 +217,31 @@ if __name__ == "__main__":
         s1.PlayGames()
         print(f'season: {s} created.')
 
-    # a = ('Blackburn Rovers', 'Tottenham Hotspur')
-    # print('Blackburn Rovers' in a)
+    
+    df_ours = pd.DataFrame(out_data_ours, columns= output_column_names)
+    max_st = max(df_ours['home_goal'].max(), df_ours['away_goal'].max())
+    min_st = min(df_ours['home_goal'].min(), df_ours['away_goal'].min())
+
+
+    df_ours.loc[:, 'home_goal'] = round(maptorange(min_st, max_st, 0, 5, df_ours['home_goal']))
+    df_ours.loc[:, 'away_goal'] = round(maptorange(min_st, max_st, 0, 5, df_ours['away_goal']))
+    df_ours.loc[:, 'result'] =  df_ours['home_goal'] - df_ours['away_goal']
+    df_ours.loc[:, 'result'] = df_ours['result'].apply(lambda z: 'home' if z > 0 else 'tie' if z == 0 else 'away')
+
+
+    df_thesis = pd.DataFrame(out_data_thesis)
+    df_thesis.loc[:, 5] = round(maptorange(min_st, max_st, 0, 5, df_thesis[5]))
+    df_thesis.loc[:, 6] = round(maptorange(min_st, max_st, 0, 5, df_thesis[6]))
+    df_thesis.loc[:, 7] = df_thesis[5] - df_thesis[6]
+    df_thesis.loc[:, 8] = df_thesis[7].apply(lambda z: 'W' if z > 0 else 'D' if z == 0 else 'L')
+
+    df_ours.to_csv(output_file_name_EPL, index= False)
+    df_thesis.to_csv(output_file_name_Thesis,index= False, header= False)
+
+    return df_ours, df_thesis
+
     
     
+if __name__ == "__main__":
+    main()
 
