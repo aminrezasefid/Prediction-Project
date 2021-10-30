@@ -14,7 +14,7 @@ output_column_names = ['match_id', 'country', 'league', 'season', 'week', 'date'
 player_strength_vec_size = 15
 maximum_possible_goals = 5
 noise_amount = 0
-fake_season_count = 5
+fake_season_count = 52
 linear_transform_vector = 0
 
 #Randomizer Objects
@@ -226,7 +226,7 @@ def main():
     df_ours.loc[:, 'home_goal'] = round(maptorange(min_st, max_st, 0, 5, df_ours['home_goal']))
     df_ours.loc[:, 'away_goal'] = round(maptorange(min_st, max_st, 0, 5, df_ours['away_goal']))
     df_ours.loc[:, 'result'] =  df_ours['home_goal'] - df_ours['away_goal']
-    df_ours.loc[:, 'result'] = df_ours['result'].apply(lambda z: 'home' if z > 0 else 'tie' if z == 0 else 'away')
+    df_ours.loc[:, 'result'] = df_ours['result'].apply(lambda z: 'win' if z > 0 else 'tie' if z == 0 else 'loss')
 
 
     df_thesis = pd.DataFrame(out_data_thesis)
