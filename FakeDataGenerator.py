@@ -11,10 +11,10 @@ output_file_name_EPL = "FakeData_EPL.csv"
 output_file_name_Thesis = "FakeData_Thesis.csv"
 output_column_names = ['match_id', 'country', 'league', 'season', 'week', 'date', 'home_team', 'away_team', 'home_goal', 'away_goal', 'result', 'home_lineup', 'away_lineup']
 
-player_strength_vec_size = 15
+player_strength_vec_size = 2
 maximum_possible_goals = 5
 noise_amount = 0
-fake_season_count = 52
+fake_season_count = 10
 linear_transform_vector = 0
 
 #Randomizer Objects
